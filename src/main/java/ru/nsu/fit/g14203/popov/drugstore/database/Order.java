@@ -16,7 +16,7 @@ public class Order extends DBObject {
     private BigDecimal      idCustomer;
     private BigDecimal      idMedicine;
 
-    public Order[] loadFromDataBase() throws SQLException {
+    public static Order[] loadFromDataBase() throws SQLException {
         ResultSet rawData = Connection.select(TABLE);
 
         Stream.Builder<Order> orders = Stream.builder();
@@ -65,7 +65,7 @@ public class Order extends DBObject {
     }
 
     @Override
-    String getIDName() {
+    String getIdName() {
         return ID_NAME;
     }
 

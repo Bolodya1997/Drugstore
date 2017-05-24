@@ -62,8 +62,20 @@ public class Customer extends DBObject {
         Connection.update(this);
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
     @Override
-    String getIDName() {
+    String getIdName() {
         return ID_NAME;
     }
 

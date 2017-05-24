@@ -76,7 +76,7 @@ public class Event extends DBObject {
     }
 
     @Override
-    String getIDName() {
+    String getIdName() {
         return ID_NAME;
     }
 

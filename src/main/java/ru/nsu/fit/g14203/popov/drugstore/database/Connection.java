@@ -3,11 +3,10 @@ package ru.nsu.fit.g14203.popov.drugstore.database;
 import oracle.jdbc.pool.OracleDataSource;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.sql.Statement;
 
 final class Connection {
 
@@ -21,74 +20,108 @@ final class Connection {
         }
     }
 
-    private static BigDecimal counterID = BigDecimal.ZERO;
-    private static BigDecimal nextID() {
-        BigDecimal result = counterID;
-        counterID = counterID.add(BigDecimal.ONE);
-
-        return result;
-    }
-
     private final static java.sql.Connection CONNECTION;
-    static  {
+    static {
         try {
             OracleDataSource ods = new OracleDataSource();
             ods.setURL("jdbc:oracle:thin:database/password@localhost:1521:xe");
 
             CONNECTION = ods.getConnection();
+
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
+    private static void setColumn(ResultSet resultSet, Column column)
+            throws SQLException {
+
+        String name = column.name;
+        Object value = column.value;
+
+        if (value instanceof BigDecimal) {
+            resultSet.updateBigDecimal(name, (BigDecimal) value);
+            return;
+        }
+
+        if (value instanceof String) {
+            resultSet.updateString(name, (String) value);
+            return;
+        }
+
+        if (value instanceof Integer) {
+            resultSet.updateInt(name, (Integer) value);
+            return;
+        }
+
+        if (value instanceof Boolean) {
+            resultSet.updateBoolean(name, (Boolean) value);
+            return;
+        }
+
+        if (value instanceof Date) {
+            resultSet.updateDate(name, (Date) value);
+            return;
+        }
+
+        throw new IllegalArgumentException(String.format("unexpected type %s", value.getClass()));
+    }
+
     static void insert(DBObject dbObject) throws SQLException {
-        StringBuilder sql = new StringBuilder(String.format("INSERT INTO %s (", dbObject.table));
+        String sql = String.format("SELECT %s.* FROM %s WHERE 0 = 1", dbObject.table, dbObject.table);
+        Statement statement = CONNECTION.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_UPDATABLE);
+        ResultSet resultSet = statement.executeQuery(sql);
 
-        Column<BigDecimal> id = new Column<>(dbObject.getIDName(), nextID());
+        resultSet.moveToInsertRow();
+
         Column[] columns = dbObject.getColumns();
+        for (Column column : columns) {
+            setColumn(resultSet, column);
+        }
 
-        String names = Stream.concat(Stream.of(id), Arrays.stream(columns))
-                .map(column -> column.name)
-                .collect(Collectors.joining(", "));
-        sql.append(String.format("%s) VALUES(", names));
+        resultSet.insertRow();
 
-        String values = Stream.concat(Stream.of(id), Arrays.stream(columns))
-                .map(column -> column.value.toString())
-                .collect(Collectors.joining(", "));
-        sql.append(String.format("%s)", values));
+//        ------   get ID   ------
+        sql = String.format("SELECT MAX(%s) FROM %s", dbObject.getIdName(), dbObject.table);
+        statement = CONNECTION.createStatement();
+        resultSet = statement.executeQuery(sql);
 
-        CONNECTION.createStatement().execute(sql.toString());
-
-        dbObject.setId(id.value);
+        resultSet.next();
+        dbObject.setId(resultSet.getBigDecimal(1));
     }
 
     static void update(DBObject dbObject) throws SQLException {
-        StringBuilder sql = new StringBuilder(String.format("UPDATE %s SET ", dbObject.table));
+        String sql = String.format("SELECT %s.* FROM %s WHERE %s = %s", dbObject.table, dbObject.table,
+                dbObject.getIdName(), dbObject.getId());
+        Statement statement = CONNECTION.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
+                ResultSet.CONCUR_UPDATABLE);
+        ResultSet resultSet = statement.executeQuery(sql);
 
-        Column<BigDecimal> id = new Column<>(dbObject.getIDName(), dbObject.getId());
+        resultSet.next();
+
         Column[] columns = dbObject.getColumns();
+        for (Column column : columns) {
+            setColumn(resultSet, column);
+        }
 
-        String set = Arrays.stream(columns)
-                .map(column -> String.format("%s=%s", column.name, column.value))
-                .collect(Collectors.joining(", "));
-        sql.append(set);
-
-        String where = String.format("WHERE %s = %s", id.name, id.value);
-        sql.append(where);
-
-        CONNECTION.createStatement().execute(sql.toString());
+        resultSet.updateRow();
     }
 
     static void delete(DBObject dbObject) throws SQLException {
-        String sql = String.format("DELETE FROM %s WHERE %s = %s",
-                dbObject.table, dbObject.getIDName(), dbObject.getId());
+        String sql = String.format("SELECT %s.* FROM %s WHERE %s = %s", dbObject.table, dbObject.table,
+                dbObject.getIdName(), dbObject.getId());
+        Statement statement = CONNECTION.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
+                ResultSet.CONCUR_UPDATABLE);
+        ResultSet resultSet = statement.executeQuery(sql);
 
-        CONNECTION.createStatement().execute(sql);
+        resultSet.next();
+        resultSet.deleteRow();
     }
 
     static ResultSet select(String table) throws SQLException {
         String sql = String.format("SELECT * FROM %s", table);
-
-        return CONNECTION.createStatement().executeQuery(sql);
+        Statement statement = CONNECTION.createStatement();
+        return statement.executeQuery(sql);
     }
 }

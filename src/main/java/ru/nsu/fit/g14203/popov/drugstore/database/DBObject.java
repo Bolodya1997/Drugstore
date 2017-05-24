@@ -3,7 +3,7 @@ package ru.nsu.fit.g14203.popov.drugstore.database;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 
-abstract class DBObject {
+public abstract class DBObject {
 
     final String table;
 
@@ -25,7 +25,7 @@ abstract class DBObject {
         Connection.delete(this);
     }
 
-    abstract String getIDName();
+    abstract String getIdName();
 
     abstract Connection.Column[] getColumns();
 }
