@@ -10,16 +10,16 @@ public class Schema extends DBObject {
     private final static String TABLE       = "schemas";
     private final static String ID_NAME     = "id_schema";
 
-    private final static String ID_MEDICINE = "id_medicine";
-    private final static String DESCRIPTION = "description";
-    private final static String TIME        = "time_";
+    public final static String ID_MEDICINE = "id_medicine";
+    public final static String DESCRIPTION = "description";
+    public final static String TIME        = "time_";
 
     private BigDecimal      idMedicine;
     private String          description;
     private String          time;
 
     public static Schema[] loadFromDataBase() throws SQLException {
-        ResultSet rawData = Connection.select(TABLE);
+        ResultSet rawData = Connection.selectTable(TABLE);
 
         Stream.Builder<Schema> schemas = Stream.builder();
         while (rawData.next()) {
@@ -37,31 +37,30 @@ public class Schema extends DBObject {
     private Schema(BigDecimal id,
                    BigDecimal idMedicine, String description, String time) {
         super(TABLE);
-        setId(id);
 
-        this.idMedicine = idMedicine;
-        this.description = description;
-        this.time = time;
+        this.id             = id;
+        this.idMedicine     = idMedicine;
+        this.description    = description;
+        this.time           = time;
     }
 
-    public Schema(BigDecimal idMedicine, String description, String time)
-            throws SQLException {
+    public Schema() {
         super(TABLE);
-
-        this.idMedicine = idMedicine;
-        this.description = description;
-        this.time = time;
-
-        Connection.insert(this);
+        insert = true;
     }
 
-    public void updateValues(BigDecimal idMedicine, String description, String time)
-            throws SQLException {
+    public Schema(BigDecimal idMedicine, String description, String time) {
+        super(TABLE);
+        updateValues(idMedicine, description, time);
+    }
+
+    public void updateValues(BigDecimal idMedicine, String description, String time) {
         this.idMedicine = idMedicine;
         this.description = description;
         this.time = time;
 
-        Connection.update(this);
+        if (!insert)
+            update = true;
     }
 
     public BigDecimal getIdMedicine() {
@@ -88,5 +87,29 @@ public class Schema extends DBObject {
                 new Connection.Column<>(DESCRIPTION, description),
                 new Connection.Column<>(TIME, time)
         };
+    }
+
+    @Override
+    void reload() throws SQLException {
+        ResultSet rawData = Connection.selectSingle(this);
+
+        idMedicine  = rawData.getBigDecimal(ID_MEDICINE);
+        description = rawData.getString(DESCRIPTION);
+        time        = rawData.getString(TIME);
+
+        insert = false;
+        update = false;
+        delete = false;
+    }
+
+    @Override
+    public String toString() {
+        String id;
+        if (insert)
+            id = "";
+        else
+            id = this.id.toString();
+
+        return String.format("%sSchema#%s", nameModifier(), id);
     }
 }

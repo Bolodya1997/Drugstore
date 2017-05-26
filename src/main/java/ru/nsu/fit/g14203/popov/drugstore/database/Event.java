@@ -20,7 +20,7 @@ public class Event extends DBObject {
     private String          type;
 
     public static Event[] loadFromDataBase() throws SQLException {
-        ResultSet rawData = Connection.select(TABLE);
+        ResultSet rawData = Connection.selectTable(TABLE);
 
         Stream.Builder<Event> events = Stream.builder();
         while (rawData.next()) {
@@ -38,29 +38,30 @@ public class Event extends DBObject {
     private Event(BigDecimal id,
                   BigDecimal idOrder, Date date, String type) {
         super(TABLE);
-        setId(id);
 
-        this.idOrder = idOrder;
-        this.date = date;
-        this.type = type;
+        this.id         = id;
+        this.idOrder    = idOrder;
+        this.date       = date;
+        this.type       = type;
     }
 
-    public Event(BigDecimal idOrder, Date date, String type) throws SQLException {
+    public Event() {
         super(TABLE);
-
-        this.idOrder = idOrder;
-        this.date = date;
-        this.type = type;
-
-        Connection.insert(this);
+        insert = true;
     }
 
-    public void updateValues(BigDecimal idOrder, Date date, String type) throws SQLException {
-        this.idOrder = idOrder;
-        this.date = date;
-        this.type = type;
+    public Event(BigDecimal idOrder, Date date, String type) {
+        this();
+        updateValues(idOrder, date, type);
+    }
 
-        Connection.update(this);
+    public void updateValues(BigDecimal idOrder, Date date, String type) {
+        this.idOrder    = idOrder;
+        this.date       = date;
+        this.type       = type;
+
+        if (!insert)
+            update = true;
     }
 
     public BigDecimal getIdOrder() {
@@ -87,5 +88,18 @@ public class Event extends DBObject {
                 new Connection.Column<>(DATE, date),
                 new Connection.Column<>(TYPE, type)
         };
+    }
+
+    @Override
+    void reload() throws SQLException {
+        ResultSet rawData = Connection.selectSingle(this);
+
+        idOrder     = rawData.getBigDecimal(ID_ORDER);
+        date        = rawData.getDate(DATE);
+        type        = rawData.getString(TYPE);
+
+        insert = false;
+        update = false;
+        delete = false;
     }
 }

@@ -1,10 +1,14 @@
 package ru.nsu.fit.g14203.popov.view;
 
+import ru.nsu.fit.g14203.popov.drugstore.database.DBObject;
+
 import javax.swing.*;
 import java.awt.*;
 import java.sql.SQLException;
 
 public class MainFrame extends JFrame {
+
+    private TablePanel tablePanel;
 
     public MainFrame() throws SQLException {
         super("Drugstore");
@@ -18,7 +22,7 @@ public class MainFrame extends JFrame {
         constraints.fill = GridBagConstraints.BOTH;
 
 //        ------   tree panel   ------
-        TreePanel treePanel = new TreePanel();
+        TreePanel treePanel = new TreePanel(this::showObject, this::showTable);
 
         constraints.gridx = GridBagConstraints.RELATIVE;
         constraints.gridy = 0;
@@ -28,7 +32,11 @@ public class MainFrame extends JFrame {
         add(treePanel, constraints);
 
 //        ------   table panel   ------
-        TablePanel tablePanel = new TablePanel();
+        tablePanel = new TablePanel(treePanel.typesNode,
+                                    treePanel.medicinesNode,
+                                    treePanel.customersNode,
+                                    treePanel.ordersNode,
+                                    treePanel.schemasNode);
 
         constraints.weightx = 1;
 
@@ -36,5 +44,14 @@ public class MainFrame extends JFrame {
 
 //        ------   end of init   ------
         setVisible(true);
+    }
+
+    private void showObject(DBObject dbObject) {
+
+    }
+
+    private void showTable(TableNode tableNode) {
+        tablePanel.tableView.showTable(tableNode);
+        tablePanel.repaint();
     }
 }

@@ -3,6 +3,7 @@ package ru.nsu.fit.g14203.popov.drugstore.database;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Random;
 import java.util.stream.Stream;
 
 public class Order extends DBObject {
@@ -17,7 +18,7 @@ public class Order extends DBObject {
     private BigDecimal      idMedicine;
 
     public static Order[] loadFromDataBase() throws SQLException {
-        ResultSet rawData = Connection.select(TABLE);
+        ResultSet rawData = Connection.selectTable(TABLE);
 
         Stream.Builder<Order> orders = Stream.builder();
         while (rawData.next()) {
@@ -34,26 +35,28 @@ public class Order extends DBObject {
     private Order(BigDecimal id,
                   BigDecimal idCustomer, BigDecimal idMedicine) {
         super(TABLE);
-        setId(id);
 
+        this.id         = id;
         this.idCustomer = idCustomer;
         this.idMedicine = idMedicine;
     }
 
-    public Order(BigDecimal idCustomer, BigDecimal idMedicine) throws SQLException {
+    public Order() {
         super(TABLE);
-
-        this.idCustomer = idCustomer;
-        this.idMedicine = idMedicine;
-
-        Connection.insert(this);
+        insert = true;
     }
 
-    public void updateValues(BigDecimal idCustomer, BigDecimal idMedicine) throws SQLException {
+    public Order(BigDecimal idCustomer, BigDecimal idMedicine) {
+        this();
+        updateValues(idCustomer, idMedicine);
+    }
+
+    public void updateValues(BigDecimal idCustomer, BigDecimal idMedicine) {
         this.idCustomer = idCustomer;
         this.idMedicine = idMedicine;
 
-        Connection.update(this);
+        if (!insert)
+            update = true;
     }
 
     public BigDecimal getIdCustomer() {
@@ -75,5 +78,28 @@ public class Order extends DBObject {
                 new Connection.Column<>(ID_CUSTOMER, idCustomer),
                 new Connection.Column<>(ID_MEDICINE, idMedicine)
         };
+    }
+
+    @Override
+    void reload() throws SQLException {
+        ResultSet rawData = Connection.selectSingle(this);
+
+        idCustomer  = rawData.getBigDecimal(ID_CUSTOMER);
+        idMedicine  = rawData.getBigDecimal(ID_MEDICINE);
+
+        insert = false;
+        update = false;
+        delete = false;
+    }
+
+    @Override
+    public String toString() {
+        String id;
+        if (insert)
+            id = "";
+        else
+            id = this.id.toString();
+
+        return String.format("%sOrder#%s", nameModifier(), id);
     }
 }

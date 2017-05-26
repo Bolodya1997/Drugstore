@@ -5,11 +5,15 @@ import java.sql.SQLException;
 
 public abstract class DBObject {
 
-    final String table;
+    public final String table;
 
-    private BigDecimal id;
+    protected BigDecimal id;
 
-    DBObject(String table) {
+    protected boolean insert;
+    protected boolean update;
+    protected boolean delete;
+
+    protected DBObject(String table) {
         this.table = table;
     }
 
@@ -17,15 +21,52 @@ public abstract class DBObject {
         return id;
     }
 
-    void setId(BigDecimal id) {
-        this.id = id;
+    public void delete() {
+        insert = false;
+        update = false;
+        delete = true;
     }
 
-    public void delete() throws SQLException {
-        Connection.delete(this);
+    public void commit() throws SQLException {
+        if (insert)
+            Connection.insert(this);
+        else if (update)
+            Connection.update(this);
+        else if (delete)
+            Connection.delete(this);
+
+        insert = false;
+        update = false;
+        delete = false;
+    }
+
+    public boolean isInsert() {
+        return insert;
+    }
+
+    public boolean isUpdate() {
+        return update;
+    }
+
+    public boolean isDelete() {
+        return delete;
+    }
+
+    protected String nameModifier() {
+        if (insert)
+            return "+";
+
+        if (update)
+            return "*";
+
+        if (delete)
+            return "-";
+
+        return "";
     }
 
     abstract String getIdName();
-
     abstract Connection.Column[] getColumns();
+
+    abstract void reload() throws SQLException;
 }

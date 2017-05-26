@@ -10,10 +10,10 @@ public class Type extends DBObject {
     private final static String TABLE       = "types";
     private final static String ID_NAME     = "id_type";
 
-    private final static String NAME        = "name";
-    private final static String INNER_ABLE  = "inner_able";
-    private final static String OUTER_ABLE  = "outer_able";
-    private final static String MIX_ABLE    = "mix_able";
+    public final static String NAME        = "name";
+    public final static String INNER_ABLE  = "inner_able";
+    public final static String OUTER_ABLE  = "outer_able";
+    public final static String MIX_ABLE    = "mix_able";
 
     private String      name;
     private Boolean     innerAble;
@@ -21,7 +21,7 @@ public class Type extends DBObject {
     private Boolean     mixAble;
 
     public static Type[] loadFromDataBase() throws SQLException {
-        ResultSet rawData = Connection.select(TABLE);
+        ResultSet rawData = Connection.selectTable(TABLE);
 
         Stream.Builder<Type> types = Stream.builder();
         while (rawData.next()) {
@@ -40,34 +40,32 @@ public class Type extends DBObject {
     private Type(BigDecimal id,
                  String name, boolean innerAble, boolean outerAble, boolean mixAble) {
         super(TABLE);
-        setId(id);
 
-        this.name = name;
-        this.innerAble = innerAble;
-        this.outerAble = outerAble;
-        this.mixAble = mixAble;
+        this.id         = id;
+        this.name       = name;
+        this.innerAble  = innerAble;
+        this.outerAble  = outerAble;
+        this.mixAble    = mixAble;
     }
 
-    public Type(String name, boolean innerAble, boolean outerAble, boolean mixAble)
-            throws SQLException {
+    public Type() {
         super(TABLE);
-
-        this.name = name;
-        this.innerAble = innerAble;
-        this.outerAble = outerAble;
-        this.mixAble = mixAble;
-
-        Connection.insert(this);
+        insert = true;
     }
 
-    public void updateValues(String name, boolean innerAble, boolean outerAble, boolean mixAble)
-            throws SQLException {
+    public Type(String name, boolean innerAble, boolean outerAble, boolean mixAble) {
+        this();
+        updateValues(name, innerAble, outerAble, mixAble);
+    }
+
+    public void updateValues(String name, boolean innerAble, boolean outerAble, boolean mixAble) {
         this.name = name;
         this.innerAble = innerAble;
         this.outerAble = outerAble;
         this.mixAble = mixAble;
 
-        Connection.update(this);
+        if (!insert)
+            update = true;
     }
 
     public String getName() {
@@ -99,5 +97,24 @@ public class Type extends DBObject {
                 new Connection.Column<>(OUTER_ABLE, outerAble),
                 new Connection.Column<>(MIX_ABLE, mixAble)
         };
+    }
+
+    @Override
+    void reload() throws SQLException {
+        ResultSet rawData = Connection.selectSingle(this);
+
+        name        = rawData.getString(NAME);
+        innerAble   = rawData.getBoolean(INNER_ABLE);
+        outerAble   = rawData.getBoolean(OUTER_ABLE);
+        mixAble     = rawData.getBoolean(MIX_ABLE);
+
+        insert = false;
+        update = false;
+        delete = false;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s%s", nameModifier(), name);
     }
 }

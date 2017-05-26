@@ -10,16 +10,16 @@ public class Customer extends DBObject {
     private final static String TABLE           = "customers";
     private final static String ID_NAME         = "id_customer";
 
-    private final static String NAME            = "name";
-    private final static String PHONE_NUMBER    = "phone_number";
-    private final static String ADDRESS         = "address";
+    public final static String NAME            = "name";
+    public final static String PHONE_NUMBER    = "phone_number";
+    public final static String ADDRESS         = "address";
 
     private String      name;
     private String      phoneNumber;
     private String      address;
 
     public static Customer[] loadFromDataBase() throws SQLException {
-        ResultSet rawData = Connection.select(TABLE);
+        ResultSet rawData = Connection.selectTable(TABLE);
 
         Stream.Builder<Customer> customers = Stream.builder();
         while (rawData.next()) {
@@ -37,29 +37,30 @@ public class Customer extends DBObject {
     private Customer(BigDecimal id,
                      String name, String phoneNumber, String address) {
         super(TABLE);
-        setId(id);
 
-        this.name = name;
-        this.phoneNumber = phoneNumber;
-        this.address = address;
+        this.id             = id;
+        this.name           = name;
+        this.phoneNumber    = phoneNumber;
+        this.address        = address;
     }
 
-    public Customer(String name, String phoneNumber, String address) throws SQLException {
+    public Customer() {
         super(TABLE);
-
-        this.name = name;
-        this.phoneNumber = phoneNumber;
-        this.address = address;
-
-        Connection.insert(this);
+        insert = true;
     }
 
-    public void updateValues(String name, String phoneNumber, String address) throws SQLException {
-        this.name = name;
-        this.phoneNumber = phoneNumber;
-        this.address = address;
+    public Customer(String name, String phoneNumber, String address) {
+        this();
+        updateValues(name, phoneNumber, address);
+    }
 
-        Connection.update(this);
+    public void updateValues(String name, String phoneNumber, String address) {
+        this.name           = name;
+        this.phoneNumber    = phoneNumber;
+        this.address        = address;
+
+        if (!insert)
+            update = true;
     }
 
     public String getName() {
@@ -86,5 +87,23 @@ public class Customer extends DBObject {
                 new Connection.Column<>(PHONE_NUMBER, phoneNumber),
                 new Connection.Column<>(ADDRESS, address)
         };
+    }
+
+    @Override
+    void reload() throws SQLException {
+        ResultSet rawData = Connection.selectSingle(this);
+
+        name        = rawData.getString(NAME);
+        phoneNumber = rawData.getString(PHONE_NUMBER);
+        address     = rawData.getString(ADDRESS);
+
+        insert = false;
+        update = false;
+        delete = false;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s%s", nameModifier(), name);
     }
 }

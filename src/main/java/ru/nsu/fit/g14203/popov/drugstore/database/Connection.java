@@ -88,7 +88,7 @@ final class Connection {
         resultSet = statement.executeQuery(sql);
 
         resultSet.next();
-        dbObject.setId(resultSet.getBigDecimal(1));
+        dbObject.id = resultSet.getBigDecimal(1);
     }
 
     static void update(DBObject dbObject) throws SQLException {
@@ -119,9 +119,22 @@ final class Connection {
         resultSet.deleteRow();
     }
 
-    static ResultSet select(String table) throws SQLException {
+    static ResultSet selectTable(String table) throws SQLException {
         String sql = String.format("SELECT * FROM %s", table);
         Statement statement = CONNECTION.createStatement();
+
         return statement.executeQuery(sql);
+    }
+
+    static ResultSet selectSingle(DBObject dbObject) throws SQLException {
+        String sql = String.format("SELECT %s.* FROM %s WHERE %s = %s", dbObject.table, dbObject.table,
+                dbObject.getIdName(), dbObject.getId());
+        Statement statement = CONNECTION.createStatement();
+        ResultSet resultSet = statement.executeQuery(sql);
+
+        if (!resultSet.next())
+            throw new IllegalArgumentException("No data found");
+
+        return resultSet;
     }
 }

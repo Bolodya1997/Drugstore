@@ -10,12 +10,12 @@ public class Medicine extends DBObject {
     private final static String TABLE       = "medicines";
     private final static String ID_NAME     = "id_medicine";
 
-    private final static String ID_TYPE     = "id_type";
-    private final static String NAME        = "name";
-    private final static String PRICE       = "price";
-    private final static String MINIMUM     = "minimum";
-    private final static String AMOUNT      = "amount";
-    private final static String IS_COMPLEX  = "is_complex";
+    public final static String ID_TYPE     = "id_type";
+    public final static String NAME        = "name";
+    public final static String PRICE       = "price";
+    public final static String MINIMUM     = "minimum";
+    public final static String AMOUNT      = "amount";
+    public final static String IS_COMPLEX  = "is_complex";
 
     private BigDecimal      idType;
     private String          name;
@@ -25,7 +25,7 @@ public class Medicine extends DBObject {
     private Boolean         isComplex;
 
     public static Medicine[] loadFromDataBase() throws SQLException {
-        ResultSet rawData = Connection.select(TABLE);
+        ResultSet rawData = Connection.selectTable(TABLE);
 
         Stream.Builder<Medicine> medicines = Stream.builder();
         while (rawData.next()) {
@@ -47,40 +47,38 @@ public class Medicine extends DBObject {
                      BigDecimal idType, String name, int price, int minimum, int amount,
                      boolean isComplex) {
         super(TABLE);
-        setId(id);
 
-        this.idType = idType;
-        this.name = name;
-        this.price = price;
-        this.minimum = minimum;
-        this.amount = amount;
-        this.isComplex = isComplex;
+        this.id         = id;
+        this.idType     = idType;
+        this.name       = name;
+        this.price      = price;
+        this.minimum    = minimum;
+        this.amount     = amount;
+        this.isComplex  = isComplex;
+    }
+
+    public Medicine() {
+        super(TABLE);
+        insert = true;
     }
 
     public Medicine(BigDecimal idType, String name, int price, int minimum, int amount,
-                    boolean isComplex) throws SQLException {
-        super(TABLE);
-
-        this.idType = idType;
-        this.name = name;
-        this.price = price;
-        this.minimum = minimum;
-        this.amount = amount;
-        this.isComplex = isComplex;
-
-        Connection.insert(this);
+                    boolean isComplex) {
+        this();
+        updateValues(idType, name, price, minimum, amount, isComplex);
     }
 
     public void updateValues(BigDecimal idType, String name, int price, int minimum, int amount,
-                             boolean isComplex) throws SQLException {
-        this.idType = idType;
-        this.name = name;
-        this.price = price;
-        this.minimum = minimum;
-        this.amount = amount;
-        this.isComplex = isComplex;
+                             boolean isComplex) {
+        this.idType     = idType;
+        this.name       = name;
+        this.price      = price;
+        this.minimum    = minimum;
+        this.amount     = amount;
+        this.isComplex  = isComplex;
 
-        Connection.update(this);
+        if (!insert)
+            update = true;
     }
 
     public BigDecimal getIdType() {
@@ -122,5 +120,26 @@ public class Medicine extends DBObject {
                 new Connection.Column<>(AMOUNT, amount),
                 new Connection.Column<>(IS_COMPLEX, isComplex)
         };
+    }
+
+    @Override
+    void reload() throws SQLException {
+        ResultSet rawData = Connection.selectSingle(this);
+
+        idType      = rawData.getBigDecimal(ID_TYPE);
+        name        = rawData.getString(NAME);
+        price       = rawData.getInt(PRICE);
+        minimum     = rawData.getInt(MINIMUM);
+        amount      = rawData.getInt(AMOUNT);
+        isComplex   = rawData.getBoolean(IS_COMPLEX);
+
+        insert = false;
+        update = false;
+        delete = false;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s%s", nameModifier(), name);
     }
 }
