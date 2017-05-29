@@ -1,6 +1,6 @@
 package ru.nsu.fit.g14203.popov;
 
-import ru.nsu.fit.g14203.popov.view.MainFrame;
+import ru.nsu.fit.g14203.popov.drugstore.view.MainFrame;
 
 import java.sql.SQLException;
 

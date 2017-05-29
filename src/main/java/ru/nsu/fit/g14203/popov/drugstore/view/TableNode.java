@@ -1,4 +1,4 @@
-package ru.nsu.fit.g14203.popov.view;
+package ru.nsu.fit.g14203.popov.drugstore.view;
 
 import com.sun.istack.internal.NotNull;
 import ru.nsu.fit.g14203.popov.drugstore.database.*;
@@ -6,7 +6,6 @@ import ru.nsu.fit.g14203.popov.drugstore.database.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.List;
 
 class TableNode<T extends DBObject> extends DefaultMutableTreeNode {
@@ -79,7 +78,7 @@ class TableNode<T extends DBObject> extends DefaultMutableTreeNode {
         return new TreePath(getPath());
     }
 
-    public List getChildren() {
+    List<DBNode> getChildren() {
         return Collections.list(children());
     }
 

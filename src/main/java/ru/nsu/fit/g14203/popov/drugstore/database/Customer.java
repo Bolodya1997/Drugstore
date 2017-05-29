@@ -19,7 +19,7 @@ public class Customer extends DBObject {
     private String      address;
 
     public static Customer[] loadFromDataBase() throws SQLException {
-        ResultSet rawData = Connection.selectTable(TABLE);
+        ResultSet rawData = Connection.selectTable(TABLE, ID_NAME);
 
         Stream.Builder<Customer> customers = Stream.builder();
         while (rawData.next()) {
@@ -46,6 +46,11 @@ public class Customer extends DBObject {
 
     public Customer() {
         super(TABLE);
+
+        name        = "Name Surname";
+        phoneNumber = "+7 (952) 123 45 67";
+        address     = "st. Best, 2-54";
+
         insert = true;
     }
 

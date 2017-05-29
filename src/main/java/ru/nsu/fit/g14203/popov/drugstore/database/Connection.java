@@ -20,7 +20,7 @@ final class Connection {
         }
     }
 
-    private final static java.sql.Connection CONNECTION;
+    final static java.sql.Connection CONNECTION;
     static {
         try {
             OracleDataSource ods = new OracleDataSource();
@@ -64,7 +64,7 @@ final class Connection {
             return;
         }
 
-        throw new IllegalArgumentException(String.format("unexpected type %s", value.getClass()));
+        resultSet.updateObject(name, value);
     }
 
     static void insert(DBObject dbObject) throws SQLException {
@@ -88,7 +88,7 @@ final class Connection {
         resultSet = statement.executeQuery(sql);
 
         resultSet.next();
-        dbObject.id = resultSet.getBigDecimal(1);
+        dbObject.setId(resultSet.getBigDecimal(1));
     }
 
     static void update(DBObject dbObject) throws SQLException {
@@ -119,8 +119,8 @@ final class Connection {
         resultSet.deleteRow();
     }
 
-    static ResultSet selectTable(String table) throws SQLException {
-        String sql = String.format("SELECT * FROM %s", table);
+    static ResultSet selectTable(String table, String idName) throws SQLException {
+        String sql = String.format("SELECT * FROM %s ORDER BY %s", table, idName);
         Statement statement = CONNECTION.createStatement();
 
         return statement.executeQuery(sql);
@@ -136,5 +136,40 @@ final class Connection {
             throw new IllegalArgumentException("No data found");
 
         return resultSet;
+    }
+
+//    ------   custom queries   ------
+
+    static ResultSet selectEvents() throws SQLException {
+        String sql = " SELECT * FROM events" +
+                     " ORDER BY id_order ASC, date_ ASC";
+        Statement statement = CONNECTION.createStatement();
+
+        return statement.executeQuery(sql);
+    }
+
+    static ResultSet selectEvent(BigDecimal idOrder) throws SQLException {
+        String sql = " SELECT * FROM events WHERE id_order = " + idOrder +
+                     " ORDER BY date_";
+        Statement statement = CONNECTION.createStatement();
+
+        return statement.executeQuery(sql);
+    }
+
+    static ResultSet selectComponents() throws SQLException {
+        String sql = " SELECT * FROM components" +
+                     " ORDER BY id_schema ASC, id_medicine ASC";
+        Statement statement = CONNECTION.createStatement();
+
+        return statement.executeQuery(sql);
+    }
+
+    static ResultSet selectComponent(BigDecimal idSchema) throws SQLException {
+        String sql = " SELECT * FROM components" +
+                     " WHERE id_schema = " + idSchema +
+                     " ORDER BY id_medicine";
+        Statement statement = CONNECTION.createStatement();
+
+        return statement.executeQuery(sql);
     }
 }

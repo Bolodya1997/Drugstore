@@ -25,40 +25,38 @@ public class Medicine extends DBObject {
     private Boolean         isComplex;
 
     public static Medicine[] loadFromDataBase() throws SQLException {
-        ResultSet rawData = Connection.selectTable(TABLE);
+        ResultSet rawData = Connection.selectTable(TABLE, ID_NAME);
 
         Stream.Builder<Medicine> medicines = Stream.builder();
         while (rawData.next()) {
-            BigDecimal id       = rawData.getBigDecimal(ID_NAME);
-            BigDecimal idType   = rawData.getBigDecimal(ID_TYPE);
-            String name         = rawData.getString(NAME);
-            int price           = rawData.getInt(PRICE);
-            int minimum         = rawData.getInt(MINIMUM);
-            int amount          = rawData.getInt(AMOUNT);
-            boolean isComplex   = rawData.getBoolean(IS_COMPLEX);
-
-            medicines.add(new Medicine(id, idType, name, price, minimum, amount, isComplex));
+            medicines.add(new Medicine(rawData));
         }
 
         return medicines.build().toArray(Medicine[]::new);
     }
 
-    private Medicine(BigDecimal id,
-                     BigDecimal idType, String name, int price, int minimum, int amount,
-                     boolean isComplex) {
+    Medicine(ResultSet rawData) throws SQLException {
         super(TABLE);
 
-        this.id         = id;
-        this.idType     = idType;
-        this.name       = name;
-        this.price      = price;
-        this.minimum    = minimum;
-        this.amount     = amount;
-        this.isComplex  = isComplex;
+        id          = rawData.getBigDecimal(ID_NAME);
+        idType      = rawData.getBigDecimal(ID_TYPE);
+        name        = rawData.getString(NAME);
+        price       = rawData.getInt(PRICE);
+        minimum     = rawData.getInt(MINIMUM);
+        amount      = rawData.getInt(AMOUNT);
+        isComplex   = rawData.getBoolean(IS_COMPLEX);
     }
 
     public Medicine() {
         super(TABLE);
+
+        idType      = BigDecimal.ONE;
+        name        = "New medicine";
+        price       = 0;
+        minimum     = 0;
+        amount      = 0;
+        isComplex   = false;
+
         insert = true;
     }
 

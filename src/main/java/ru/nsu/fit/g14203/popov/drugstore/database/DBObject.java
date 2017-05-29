@@ -21,6 +21,10 @@ public abstract class DBObject {
         return id;
     }
 
+    void setId(BigDecimal id) {
+        this.id = id;
+    }
+
     public void delete() {
         insert = false;
         update = false;

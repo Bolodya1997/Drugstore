@@ -1,4 +1,4 @@
-package ru.nsu.fit.g14203.popov.view;
+package ru.nsu.fit.g14203.popov.drugstore.view;
 
 import ru.nsu.fit.g14203.popov.drugstore.database.*;
 
@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 
 class TreePanel extends JPanel {
 
-    private DefaultMutableTreeNode root         = new DefaultMutableTreeNode("Drugstore");
+    private DefaultMutableTreeNode root = new DefaultMutableTreeNode("Drugstore");
 
     TableNode<Type> typesNode           = new TableNode<>(Type.class);
     TableNode<Medicine> medicinesNode   = new TableNode<>(Medicine.class);
@@ -116,7 +116,8 @@ class TreePanel extends JPanel {
         nodeMenu.add(deleteMenuItem);
     }
 
-    TreePanel(Consumer<DBObject> showObject, Consumer<TableNode> showTable) throws SQLException {
+    TreePanel(Consumer<TableNode.DBNode> showObjectNode, Consumer<TableNode> showTable)
+            throws SQLException {
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 
         tree.expandRow(0);
@@ -128,16 +129,18 @@ class TreePanel extends JPanel {
                     return;
 
                 TreePath path = tree.getClosestPathForLocation(e.getX(), e.getY());
+                TreeNode last;
                 if (path == null || !tree.getPathBounds(path).contains(e.getPoint()))
-                    return;
+                    last = root;
+                else
+                    last = (TreeNode) path.getLastPathComponent();
 
-
-                if (path.getLastPathComponent() == root) {
+                if (last == root) {
                     rootMenu.show(TreePanel.this, e.getX(), e.getY());
-                } else if (path.getLastPathComponent() instanceof TableNode) {
+                } else if (last instanceof TableNode) {
                     selectedTable = (TableNode<DBObject>) path.getLastPathComponent();
                     tableMenu.show(TreePanel.this, e.getX(), e.getY());
-                } else if (path.getLastPathComponent() instanceof TableNode.DBNode) {
+                } else if (last instanceof TableNode.DBNode) {
                     selectedNode = (TableNode.DBNode) path.getLastPathComponent();
                     selectedTable = (TableNode<DBObject>) selectedNode.getParent();
                     nodeMenu.show(TreePanel.this, e.getX(), e.getY());
@@ -145,10 +148,12 @@ class TreePanel extends JPanel {
             }
         });
         tree.addTreeSelectionListener(e -> {
-            Object node = e.getPath().getLastPathComponent();
+            if (e.getPath().equals(e.getOldLeadSelectionPath()))
+                return;
 
+            Object node = e.getPath().getLastPathComponent();
             if (node instanceof TableNode.DBNode)
-                showObject.accept(((TableNode.DBNode) node).object);
+                showObjectNode.accept((TableNode.DBNode) node);
             else if (node instanceof TableNode)
                 showTable.accept((TableNode) node);
         });
@@ -225,5 +230,9 @@ class TreePanel extends JPanel {
             treeModel.reload(node);
         else
             treeModel.reload();
+    }
+
+    void selectNode(TableNode.DBNode dbNode) {
+        tree.setSelectionPath(new TreePath(dbNode.getPath()));
     }
 }

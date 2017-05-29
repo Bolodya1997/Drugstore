@@ -8,41 +8,30 @@ import java.util.stream.Stream;
 
 public class Event extends DBObject {
 
+    public final static String TYPE_OPEN    = "open";
+    public final static String TYPE_WAIT    = "wait";
+    public final static String TYPE_PROCESS = "process";
+    public final static String TYPE_READY   = "ready";
+    public final static String TYPE_CLOSE   = "close";
+
     private final static String TABLE       = "events";
     private final static String ID_NAME     = "id_event";
 
     private final static String ID_ORDER    = "id_order";
-    private final static String DATE        = "date_";
+    public final static String DATE        = "date_";
     private final static String TYPE        = "type_";
 
     private BigDecimal      idOrder;
     private Date            date;
     private String          type;
 
-    public static Event[] loadFromDataBase() throws SQLException {
-        ResultSet rawData = Connection.selectTable(TABLE);
-
-        Stream.Builder<Event> events = Stream.builder();
-        while (rawData.next()) {
-            BigDecimal id       = rawData.getBigDecimal(ID_NAME);
-            BigDecimal idOrder  = rawData.getBigDecimal(ID_ORDER);
-            Date date           = rawData.getDate(DATE);
-            String type         = rawData.getString(TYPE);
-
-            events.add(new Event(id, idOrder, date, type));
-        }
-
-        return events.build().toArray(Event[]::new);
-    }
-
-    private Event(BigDecimal id,
-                  BigDecimal idOrder, Date date, String type) {
+    Event(ResultSet rawData) throws SQLException {
         super(TABLE);
 
-        this.id         = id;
-        this.idOrder    = idOrder;
-        this.date       = date;
-        this.type       = type;
+        id      = rawData.getBigDecimal(ID_NAME);
+        idOrder = rawData.getBigDecimal(ID_ORDER);
+        date    = rawData.getDate(DATE);
+        type    = rawData.getString(TYPE);
     }
 
     public Event() {
@@ -50,14 +39,13 @@ public class Event extends DBObject {
         insert = true;
     }
 
-    public Event(BigDecimal idOrder, Date date, String type) {
+    public Event(BigDecimal idOrder, String type) {
         this();
-        updateValues(idOrder, date, type);
+        updateValues(idOrder, type);
     }
 
-    public void updateValues(BigDecimal idOrder, Date date, String type) {
+    public void updateValues(BigDecimal idOrder, String type) {
         this.idOrder    = idOrder;
-        this.date       = date;
         this.type       = type;
 
         if (!insert)
@@ -85,7 +73,6 @@ public class Event extends DBObject {
     Connection.Column[] getColumns() {
         return new Connection.Column[]{
                 new Connection.Column<>(ID_ORDER, idOrder),
-                new Connection.Column<>(DATE, date),
                 new Connection.Column<>(TYPE, type)
         };
     }
@@ -101,5 +88,10 @@ public class Event extends DBObject {
         insert = false;
         update = false;
         delete = false;
+    }
+
+    @Override
+    public String toString() {
+        return type;
     }
 }

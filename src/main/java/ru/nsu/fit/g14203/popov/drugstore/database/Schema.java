@@ -1,8 +1,12 @@
 package ru.nsu.fit.g14203.popov.drugstore.database;
 
+import oracle.sql.INTERVALDS;
+
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 public class Schema extends DBObject {
@@ -14,50 +18,69 @@ public class Schema extends DBObject {
     public final static String DESCRIPTION = "description";
     public final static String TIME        = "time_";
 
-    private BigDecimal      idMedicine;
-    private String          description;
-    private String          time;
+    private BigDecimal          idMedicine;
+    private String              description;
+    private INTERVALDS          time;
+    private List<Component>     components = new ArrayList<>();
 
     public static Schema[] loadFromDataBase() throws SQLException {
-        ResultSet rawData = Connection.selectTable(TABLE);
+        ResultSet rawData = Connection.selectTable(TABLE, ID_NAME);
+        ResultSet componentsRawData = Connection.selectComponents();
+
+        Component cur = null;
 
         Stream.Builder<Schema> schemas = Stream.builder();
-        while (rawData.next()) {
-            BigDecimal id           = rawData.getBigDecimal(ID_NAME);
-            BigDecimal idMedicine   = rawData.getBigDecimal(ID_MEDICINE);
-            String description      = rawData.getString(DESCRIPTION);
-            String time             = rawData.getString(TIME);
+loop:   while (rawData.next()) {
+            Schema schema = new Schema(rawData);
+            schemas.add(schema);
 
-            schemas.add(new Schema(id, idMedicine, description, time));
+            while (true) {
+                if (cur == null) {
+                    if (componentsRawData.next()) {
+                        cur = new Component(componentsRawData);
+                    } else {
+                        continue loop;
+                    }
+                }
+
+                if (cur.getIdSchema().equals(schema.id)) {
+                    schema.components.add(cur);
+                    cur = null;
+                } else {
+                    continue loop;
+                }
+            }
         }
 
         return schemas.build().toArray(Schema[]::new);
     }
 
-    private Schema(BigDecimal id,
-                   BigDecimal idMedicine, String description, String time) {
+    private Schema(ResultSet rawData) throws SQLException {
         super(TABLE);
 
-        this.id             = id;
-        this.idMedicine     = idMedicine;
-        this.description    = description;
-        this.time           = time;
+        id          = rawData.getBigDecimal(ID_NAME);
+        idMedicine  = rawData.getBigDecimal(ID_MEDICINE);
+        description = rawData.getString(DESCRIPTION);
+        time        = (INTERVALDS) rawData.getObject(TIME);
     }
 
     public Schema() {
         super(TABLE);
+
+        time = new INTERVALDS("0 00:00:00.0");
+
         insert = true;
     }
 
     public Schema(BigDecimal idMedicine, String description, String time) {
-        super(TABLE);
+        this();
         updateValues(idMedicine, description, time);
     }
 
     public void updateValues(BigDecimal idMedicine, String description, String time) {
-        this.idMedicine = idMedicine;
-        this.description = description;
-        this.time = time;
+        this.idMedicine     = idMedicine;
+        this.description    = description;
+        this.time.setBytes(INTERVALDS.toBytes(time));
 
         if (!insert)
             update = true;
@@ -72,7 +95,20 @@ public class Schema extends DBObject {
     }
 
     public String getTime() {
-        return time;
+        return time.toString();
+    }
+
+    public List<Component> getComponents() {
+        return components;
+    }
+
+    @Override
+    void setId(BigDecimal id) {
+        super.setId(id);
+
+        for (Component component : components) {
+            component.updateValues(id, component.getIdMedicine(), component.getAmount());
+        }
     }
 
     @Override
@@ -90,12 +126,44 @@ public class Schema extends DBObject {
     }
 
     @Override
+    public void delete() {
+        for (Component component : components) {
+            component.delete();
+        }
+
+        super.delete();
+    }
+
+    @Override
+    public void commit() throws SQLException {
+        if (delete) {
+            for (Component component : components) {
+                component.commit();
+            }
+        }
+
+        super.commit();
+
+        if (!delete) {
+            for (Component component : components) {
+                component.commit();
+            }
+        }
+    }
+
+    @Override
     void reload() throws SQLException {
         ResultSet rawData = Connection.selectSingle(this);
+        ResultSet componentsRawData = Connection.selectComponent(id);
 
         idMedicine  = rawData.getBigDecimal(ID_MEDICINE);
         description = rawData.getString(DESCRIPTION);
-        time        = rawData.getString(TIME);
+        time        = (INTERVALDS) rawData.getObject(TIME);
+
+        components.clear();
+        while (componentsRawData.next()) {
+            components.add(new Component(componentsRawData));
+        }
 
         insert = false;
         update = false;

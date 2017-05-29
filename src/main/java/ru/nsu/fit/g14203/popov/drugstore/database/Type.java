@@ -21,7 +21,7 @@ public class Type extends DBObject {
     private Boolean     mixAble;
 
     public static Type[] loadFromDataBase() throws SQLException {
-        ResultSet rawData = Connection.selectTable(TABLE);
+        ResultSet rawData = Connection.selectTable(TABLE, ID_NAME);
 
         Stream.Builder<Type> types = Stream.builder();
         while (rawData.next()) {
@@ -50,6 +50,12 @@ public class Type extends DBObject {
 
     public Type() {
         super(TABLE);
+
+        name        = "New type";
+        innerAble   = false;
+        outerAble   = false;
+        mixAble     = false;
+
         insert = true;
     }
 

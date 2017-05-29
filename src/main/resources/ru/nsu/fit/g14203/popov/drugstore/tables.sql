@@ -42,7 +42,6 @@ CREATE SEQUENCE seq_medicines
     INCREMENT BY 1
     NOMAXVALUE;
 
-
 CREATE OR REPLACE TRIGGER ins_medicines
     BEFORE INSERT ON medicines
     REFERENCING NEW AS NEW
@@ -80,12 +79,28 @@ END;
 
 DROP TABLE components;
 CREATE TABLE components(
+    id_component    NUMBER(10)                      NOT NULL        PRIMARY KEY,
     id_schema       NUMBER(10)                      REFERENCES schemas(id_schema),
     id_medicine     NUMBER(10)                      REFERENCES medicines(id_medicine),
     amount          INTEGER                         NOT NULL,
 
     UNIQUE (id_schema, id_medicine)
 );
+
+DROP SEQUENCE seq_components;
+CREATE SEQUENCE seq_components
+    START WITH 1
+    INCREMENT BY 1
+    NOMAXVALUE;
+
+
+CREATE OR REPLACE TRIGGER ins_components
+    BEFORE INSERT ON components
+    REFERENCING NEW AS NEW
+    FOR EACH ROW
+BEGIN
+    :NEW.id_component := seq_components.nextval;
+END;
 
 --  customers
 
@@ -118,7 +133,8 @@ DROP TABLE orders;
 CREATE TABLE orders(
     id_order        NUMBER(10)                      NOT NULL        PRIMARY KEY,
     id_customer     NUMBER(10)                      REFERENCES customers(id_customer),
-    id_medicine     NUMBER(10)                      REFERENCES medicines(id_medicine)
+    id_medicine     NUMBER(10)                      REFERENCES medicines(id_medicine),
+    amount          INTEGER                         NOT NULL
 );
 
 DROP SEQUENCE seq_orders;
@@ -158,5 +174,67 @@ CREATE OR REPLACE TRIGGER ins_events
     REFERENCING NEW AS NEW
     FOR EACH ROW
 BEGIN
-    :NEW.id_event := seq_events.nextval;
+    :NEW.id_event   := seq_events.nextval;
+    :NEW.date_      := SYSDATE;
+END;
+
+--  notes
+
+DROP TABLE notes;
+CREATE TABLE notes(
+    id_note         NUMBER(10)                      NOT NULL        PRIMARY KEY,
+    date_           DATE                            NOT NULL
+);
+
+DROP SEQUENCE seq_notes;
+CREATE SEQUENCE seq_notes
+    START WITH 1
+    INCREMENT BY 1
+    NOMAXVALUE;
+
+
+CREATE OR REPLACE TRIGGER ins_notes
+    BEFORE INSERT ON notes
+    REFERENCING NEW AS NEW
+    FOR EACH ROW
+BEGIN
+    :NEW.id_note    := seq_notes.nextval;
+    :NEW.date_      := SYSDATE;
+END;
+
+--  st_events
+
+DROP TABLE st_events;
+CREATE TABLE st_events(
+    id_st_event     NUMBER(10)                      NOT NULL        PRIMARY KEY,
+    id_note         NUMBER(10)                      REFERENCES notes(id_note),
+    id_medicine     NUMBER(10)                      REFERENCES medicines(id_medicine),
+    amount          INTEGER                         NOT NULL,
+    type_           VARCHAR(255)                    NOT NULL,
+
+    UNIQUE (id_note, id_medicine)
+);
+
+CREATE OR REPLACE TRIGGER st_load
+    BEFORE INSERT ON st_events
+    REFERENCING NEW AS NEW
+    FOR EACH ROW
+BEGIN
+    IF :NEW.type_ = 'load' THEN
+        UPDATE medicines
+        SET amount = amount + :NEW.amount
+        WHERE id_medicine = :NEW.id_medicine;
+    END IF;
+END;
+
+CREATE OR REPLACE TRIGGER st_get
+    BEFORE INSERT ON st_events
+    REFERENCING NEW AS NEW
+    FOR EACH ROW
+BEGIN
+    IF :NEW.type_ = 'get' THEN
+        UPDATE medicines
+        SET amount = amount - :NEW.amount
+        WHERE id_medicine = :NEW.id_medicine;
+    END IF;
 END;
